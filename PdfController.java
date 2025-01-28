@@ -54,7 +54,7 @@ public class PdfController {
             // Apply masking if requested
             if (request.isMasking()) {
                 logWithTimestamp("Entering masking");
-                maskedPdfBytes = o1service.applyMasking(pdfFile, buildMaskingParams(request.getMaskingRequest()));
+                maskedPdfBytes = o1service.applySelectedMasking(pdfFile, buildMaskingParams(request.getMaskingRequest()));
                 outputBytes = maskedPdfBytes;
                 logWithTimestamp("Masking completed");
             }
