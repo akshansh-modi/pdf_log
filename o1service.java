@@ -198,11 +198,13 @@ System.out.println("password   : "+ password);
         return null;
     }
 
-    public static byte[] applyMasking(File pdfFile, Map<String, String> maskingRequest) {
+public static byte[] applySelectedMasking(File pdfFile, Map<String, String> maskingRequest) {
         try (PDDocument document = PDDocument.load(pdfFile)) {
             PDFRenderer pdfRenderer = new PDFRenderer(document);
 
-            for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
+    
+            ArrayList<Integer> pageIndices = getPagesToMask(document , maskingRequest);
+            for (int pageIndex:pageIndices ) {
                 BufferedImage image = pdfRenderer.renderImageWithDPI(pageIndex, 144);
                 BufferedImage maskedImage = annotateAndMaskSpecificTextInImage(image, maskingRequest);
                 replacePageWithMaskedImage(document, pageIndex, maskedImage);
@@ -219,6 +221,34 @@ System.out.println("password   : "+ password);
         }
     }
 
+public  static  ArrayList<Integer> getPagesToMask(PDDocument document , Map<String,String> maskingRequest){
+
+    ArrayList<Integer> pageIndices = new ArrayList<>();
+    try {
+        for (int i = 0; i < document.getNumberOfPages(); i++) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setStartPage(i + 1);
+            stripper.setEndPage(i + 1);
+            String pageText = stripper.getText(document);
+
+            for (String target : maskingRequest.values()) {
+            System.out.print(target);
+                if (pageText.contains(target)) {
+                    pageIndices.add(i);
+                    break;
+                }
+            }
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    return pageIndices;
+}
+
+
+
+
+    
     private static BufferedImage annotateAndMaskSpecificTextInImage(BufferedImage image,
             Map<String, String> maskingRequest) throws IOException {
         ITesseract tesseract = new Tesseract();
