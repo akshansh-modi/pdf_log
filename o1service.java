@@ -45,6 +45,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.TextStyle;
 import java.util.*;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -73,17 +74,14 @@ public class o1service {
             if (docType.isEmpty()) {
                 throw new IllegalArgumentException("Document type must be specified.");
             }
-
-            // Check if password protection is enabled
+            
             String protect = inputParams.getOrDefault("protect", "false").trim();
-
-            // System.out.println("entering protect if ");
-            // Generate password based on document type
+            
             String password = generatePassword(docType, inputParams);
 
             System.out.println(password);
             StandardProtectionPolicy protectionPolicy =getStandardProtectionPolicy(password, docType);
-        
+
             document.protect(protectionPolicy);
 
             try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
@@ -120,16 +118,16 @@ public class o1service {
 
 
         AccessPermission accessPermission = new AccessPermission();
-        accessPermission.setCanPrint(true); // Example: Allow printing
-        accessPermission.setCanModify(false); // Example: Restrict editing
-System.out.println("password   : "+ password);
+        accessPermission.setCanPrint(true); 
+        accessPermission.setCanModify(false);
+        System.out.println("password   : "+ password);
         StandardProtectionPolicy protectionPolicy = new StandardProtectionPolicy(password, password, accessPermission);
         protectionPolicy.setEncryptionKeyLength(128); // Use 128-bit encryption
         return protectionPolicy;
     }
 
     private static String generatePassword(String docType, Map<String, String> inputParams) {
-        // System.out.println("\n doctype : " + docType);
+   
 
         String firstName = inputParams.get("firstName");
         if(firstName==null){
@@ -167,7 +165,7 @@ System.out.println("password   : "+ password);
                 }
             case "receipt":
                 if (inputParams.containsKey("birthdate")) {
-                  return birthdate;
+                    return birthdate;
                 }
                 break;
             case "smequotation":
@@ -178,9 +176,9 @@ System.out.println("password   : "+ password);
                 String month="";
                 String year="";
                 if(!birthdate.isEmpty()){
-                     day = birthdate.substring(0, 2);
-                     month = birthdate.substring(2, 4);
-                     year = birthdate.substring(4);
+                    day = birthdate.substring(0, 2);
+                    month = birthdate.substring(2, 4);
+                    year = birthdate.substring(4);
                 }
                 if (!lastName.isEmpty()) {
                     String fNamePart = firstName.length() >= 2 ? firstName.substring(0, 2) : firstName;
@@ -198,15 +196,14 @@ System.out.println("password   : "+ password);
         return null;
     }
 
-public static byte[] applySelectedMasking(File pdfFile, Map<String, String> maskingRequest) {
+    public static byte[] applySelectedMasking(File pdfFile, Map<String, List<String>> maskingRequests) {
         try (PDDocument document = PDDocument.load(pdfFile)) {
             PDFRenderer pdfRenderer = new PDFRenderer(document);
 
-    
-            ArrayList<Integer> pageIndices = getPagesToMask(document , maskingRequest);
-            for (int pageIndex:pageIndices ) {
+            ArrayList<Integer> pageIndices = getPagesToMask(document, maskingRequests);
+            for (int pageIndex : pageIndices) {
                 BufferedImage image = pdfRenderer.renderImageWithDPI(pageIndex, 144);
-                BufferedImage maskedImage = annotateAndMaskSpecificTextInImage(image, maskingRequest);
+                BufferedImage maskedImage = annotateAndMaskSpecificTextInImage(image, maskingRequests);
                 replacePageWithMaskedImage(document, pageIndex, maskedImage);
             }
 
@@ -221,77 +218,93 @@ public static byte[] applySelectedMasking(File pdfFile, Map<String, String> mask
         }
     }
 
-public  static  ArrayList<Integer> getPagesToMask(PDDocument document , Map<String,String> maskingRequest){
+    public static ArrayList<Integer> getPagesToMask(PDDocument document, Map<String, List<String>> maskingRequests) {
+        ArrayList<Integer> pageIndices = new ArrayList<>();
+        try {
+            for (int i = 0; i < document.getNumberOfPages(); i++) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setStartPage(i + 1);
+                stripper.setEndPage(i + 1);
+                String pageText = stripper.getText(document);
 
-    ArrayList<Integer> pageIndices = new ArrayList<>();
-    try {
-        for (int i = 0; i < document.getNumberOfPages(); i++) {
-            PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setStartPage(i + 1);
-            stripper.setEndPage(i + 1);
-            String pageText = stripper.getText(document);
-
-            for (String target : maskingRequest.values()) {
-            System.out.print(target);
-                if (pageText.contains(target)) {
-                    pageIndices.add(i);
-                    break;
+                for (List<String> targets : maskingRequests.values()) {
+                    for (String target : targets) {
+                        System.out.println("Checking target: " + target);
+                        if (pageText.contains(target)) {
+                            System.out.println("Found target on page: " + i);
+                            pageIndices.add(i);
+                            break;
+                        }
+                    }
                 }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    } catch (IOException e) {
-        e.printStackTrace();
+        return pageIndices;
     }
-    return pageIndices;
-}
 
-
-
-
-    
-    private static BufferedImage annotateAndMaskSpecificTextInImage(BufferedImage image,
-            Map<String, String> maskingRequest) throws IOException {
+    private static BufferedImage annotateAndMaskSpecificTextInImage(BufferedImage image, Map<String, List<String>> maskingRequests) throws IOException {
         ITesseract tesseract = new Tesseract();
-        tesseract.setDatapath("C:\\Users\\v.akshansh.modi\\AppData\\Local\\Programs\\Tesseract-OCR\\tessdata");
+        tesseract.setDatapath("C:/Users/v.akshansh.modi/AppData/Local/Programs/Tesseract-OCR/tessdata");
 
-        java.util.List<net.sourceforge.tess4j.Word> words = tesseract.getWords(image,
-                ITessAPI.TessPageIteratorLevel.RIL_WORD);
+        java.util.List<net.sourceforge.tess4j.Word> words = tesseract.getWords(image, ITessAPI.TessPageIteratorLevel.RIL_WORD);
         Graphics2D g2d = image.createGraphics();
-        final int uniformFontSize = 20;
 
         for (net.sourceforge.tess4j.Word word : words) {
-            String wordText = word.getText();
-            String maskedText = getMaskedText(wordText, maskingRequest);
+            String wordText = word.getText().trim();
+            String maskedText = getMaskedText(wordText, maskingRequests);
 
             if (maskedText != null) {
+                // Get bounding box dimensions
                 int x = word.getBoundingBox().x;
                 int y = word.getBoundingBox().y;
                 int width = word.getBoundingBox().width;
                 int height = word.getBoundingBox().height;
 
+                // Mask the original text with a white rectangle
                 g2d.setColor(Color.WHITE);
                 g2d.fillRect(x, y, width, height);
 
-                g2d.setFont(new Font("Arial", Font.PLAIN, uniformFontSize));
+                // Dynamically calculate font size slightly larger than bounding box height
+                float fontSize = height * 1.1f; // Scale factor to make text slightly larger
+                Font currentFont = g2d.getFont();
+
+                // Detect if the original text was bold (if such metadata is available)
+                //boolean isBold = detectIfBold(word); // Implement this method based on your OCR library or metadata
+                boolean isBold=false;
+                // Set font style based on detected boldness
+                Font scaledFont = currentFont.deriveFont(isBold ? Font.BOLD : Font.PLAIN, fontSize);
+                g2d.setFont(scaledFont);
+
+                // Use FontMetrics to adjust text positioning
+                FontMetrics metrics = g2d.getFontMetrics(scaledFont);
+                int textHeight = metrics.getAscent();
+
+                // Draw the masked text at the top-left corner of the bounding box
                 g2d.setColor(Color.BLACK);
-                g2d.drawString(maskedText, x, y + height - (int) (height * 0.2));
+                g2d.drawString(maskedText, x, y + textHeight - metrics.getDescent());
+
+                System.out.println("Masked word: " + wordText + " with " + maskedText + " (Bold: " + isBold + ")");
             }
         }
         g2d.dispose();
         return image;
     }
 
-    private static String getMaskedText(String text, Map<String, String> maskingRequest) {
-        text = text.trim();
-        for (Map.Entry<String, String> entry : maskingRequest.entrySet()) {
-            String maskTarget = entry.getValue().trim();
-            if (text.contains(maskTarget)) {
-                if (entry.getKey().equalsIgnoreCase("emailId")) {
-                    return maskEmail(maskTarget);
-                } else if (entry.getKey().equalsIgnoreCase("dob")) {
-                    return maskDOB(maskTarget);
-                } else if (entry.getKey().equalsIgnoreCase("mobileNumber")) {
-                    return maskPhoneNumber(maskTarget);
+    private static String getMaskedText(String text, Map<String, List<String>> maskingRequests) {
+        for (Map.Entry<String, List<String>> entry : maskingRequests.entrySet()) {
+            for (String maskTarget : entry.getValue()) {
+                maskTarget = maskTarget.trim();
+                if (text.contains(maskTarget)) {
+                    switch (entry.getKey().toLowerCase()) {
+                        case "emailids":
+                            return maskEmail(maskTarget);
+                        case "dobs":
+                            return maskDOB(maskTarget);
+                        case "mobilenumbers":
+                            return maskPhoneNumber(maskTarget);
+                    }
                 }
             }
         }
@@ -309,26 +322,57 @@ public  static  ArrayList<Integer> getPagesToMask(PDDocument document , Map<Stri
         return email;
     }
 
-    public static String maskDOB(String dob) {
-        String[] parts = dob.split("/");
-        if (parts.length == 3) {
-            return "XX/" + parts[1] + "/" + parts[2].substring(0, 2) + "XX";
-        }
 
-        // Check for the pattern '01-Jan-2002'
+    public static String maskDOB(String dob) {
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
-            LocalDate date = LocalDate.parse(dob, formatter);
-            String maskedYear = date.getYear() / 100 + "XX";
-            String maskedDOB = String.format("XX-%s-%s",
-                    date.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH), maskedYear);
-            return maskedDOB;
-        } catch (DateTimeParseException e) {
-            // Handle the exception or return original dob if it doesn't match the expected
-            // pattern
+            // Define formatters for various patterns
+            DateTimeFormatter[] formatters = {
+                    DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("yyyy/MM/dd", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH)
+            };
+
+            for (DateTimeFormatter formatter : formatters) {
+                try {
+                    LocalDate date = LocalDate.parse(dob, formatter);
+
+                    // Masking logic for YYYY/MM/DD or YYYY-MM-DD
+                    if (formatter.toString().contains("yyyy")) {
+                        String maskedYear = date.getYear() % 100 + "XX";
+                        return String.format("%s/%02d/XX",
+                                maskedYear, date.getMonthValue());
+                    }
+
+                    // Masking logic for DD-MMM-YYYY or DD/MMM/YYYY
+                    String maskedYear = (date.getYear() / 100) + "XX";
+                    return String.format("XX-%s-%s",
+                            date.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH), maskedYear);
+                } catch (DateTimeParseException ignored) {
+                }
+            }
+
+            // If date is in the format DD/JUL/YYYY
+            if (dob.matches("\\d{2}/[A-Z]{3}/\\d{4}")) {
+                String[] parts = dob.split("/");
+                String maskedYear = parts[2].substring(2, 4) + "XX";
+                return String.format("XX/%s/%s", parts[1], maskedYear);
+            }
+
+            // If date parsing fails, handle alternative format
+            String[] parts = dob.split("[-/]");
+            if (parts.length == 3) {
+                return "XX/" + parts[1] + "/" + parts[2].substring(0, 2) + "XX";
+            }
+            return dob;
+
+        } catch (Exception e) {
             return dob;
         }
     }
+
 
     private static String maskPhoneNumber(String phoneNumber) {
         if (phoneNumber.length() > 6) {
@@ -337,8 +381,7 @@ public  static  ArrayList<Integer> getPagesToMask(PDDocument document , Map<Stri
         return phoneNumber;
     }
 
-    private static void replacePageWithMaskedImage(PDDocument document, int pageIndex, BufferedImage maskedImage)
-            throws IOException {
+    private static void replacePageWithMaskedImage(PDDocument document, int pageIndex, BufferedImage maskedImage) throws IOException {
         PDPage page = document.getPage(pageIndex);
 
         File tempFile = File.createTempFile("masked_page_" + pageIndex, ".png");
@@ -349,6 +392,6 @@ public  static  ArrayList<Integer> getPagesToMask(PDDocument document , Map<Stri
                 PDPageContentStream.AppendMode.OVERWRITE, true, true)) {
             contentStream.drawImage(pdImage, 0, 0, page.getMediaBox().getWidth(), page.getMediaBox().getHeight());
         }
-
     }
 }
+
