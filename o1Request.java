@@ -1,7 +1,7 @@
 package com.starhealth.pdf_generation.dto;
 
 import java.io.File;
-import java.util.Map;
+import java.util.List;
 
 public class o1Request {
 
@@ -56,67 +56,50 @@ public class o1Request {
         private String lastName;
         private String firstName;
         private String birthdate;
-
-        public String getDocType() {
-            return docType;
-        }
-
-        public void setDocType(String docType) {
-            this.docType = docType;
-        }
-
-        public String getLastName() {
-            return lastName;
-        }
-
-        public void setLastName(String lastName) {
-            this.lastName = lastName;
-        }
-
-        public String getFirstName() {
-            return firstName;
-        }
-
-        public void setFirstName(String firstName) {
-            this.firstName = firstName;
-        }
-
-        public String getBirthdate() {
-            return birthdate;
-        }
-
-        public void setBirthdate(String birthdate) {
-            this.birthdate = birthdate;
-        }
+        public String getDocType() { return docType; }
+        public void setDocType(String docType)
+            { this.docType = docType; }
+        public String getLastName()
+            { return lastName; }
+        public void setLastName(String lastName)
+            { this.lastName = lastName; }
+        public String getFirstName()
+            { return firstName; }
+        public void setFirstName(String firstName)
+            { this.firstName = firstName; }
+        public String getBirthdate()
+            { return birthdate; }
+        public void setBirthdate(String birthdate)
+            { this.birthdate = birthdate; }
     }
 
     public static class MaskingRequest {
-        private String emailID;
-        private String mobileNumber;
-        private String dob;
+        private List<String> emailIDs;
+        private List<String> mobileNumbers;
+        private List<String> dobs;
 
-        public String getEmailID() {
-            return emailID;
+        public List<String> getEmailIDs() {
+            return emailIDs;
         }
 
-        public void setEmailID(String emailID) {
-            this.emailID = emailID;
+        public void setEmailIDs(List<String> emailIDs) {
+            this.emailIDs = emailIDs;
         }
 
-        public String getMobileNumber() {
-            return mobileNumber;
+        public List<String> getMobileNumbers() {
+            return mobileNumbers;
         }
 
-        public void setMobileNumber(String mobileNumber) {
-            this.mobileNumber = mobileNumber;
+        public void setMobileNumbers(List<String> mobileNumbers) {
+            this.mobileNumbers = mobileNumbers;
         }
 
-        public String getDob() {
-            return dob;
+        public List<String> getDobs() {
+            return dobs;
         }
 
-        public void setDob(String dob) {
-            this.dob = dob;
+        public void setDobs(List<String> dobs) {
+            this.dobs = dobs;
         }
     }
 }
