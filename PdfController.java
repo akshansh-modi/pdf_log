@@ -1,3 +1,42 @@
+package com.starhealth.pdf_generation.controller;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.starhealth.pdf_generation.dto.o1Request;
+import com.starhealth.pdf_generation.service.PdfService;
+import com.starhealth.pdf_generation.service.o1service;
+import com.starhealth.pdf_generation.validation.ValidUnifiedRequest;
+import com.starhealth.pdf_generation.service.o2service;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfStamper;
+@ValidUnifiedRequest
+@RestController
+public class PdfController {
+
 @PostMapping(value = "/getMaskAndProtectPdfUsingPdfInput", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 public ResponseEntity<ByteArrayResource> processPDF(@RequestPart("file") MultipartFile file,
                                                     @RequestPart("request") String requestJson) {
@@ -108,3 +147,4 @@ public ResponseEntity<ByteArrayResource> processPDF(@RequestPart("file") Multipa
     }
 
 }
+
